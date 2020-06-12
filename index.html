@@ -1,0 +1,272 @@
+<!DOCtype html>
+<html class="no-js" lang="ja">
+<head>
+	<meta charset="UTF-8">
+	<meta http-equiv="X-UA-Compatible" content="" />
+	<meta http-equiv="Pragma" content="no-cache">
+	<title>Create jQuery</title>
+	
+	<link href="colorbox/design1/colorbox.css" rel="stylesheet" />
+	
+	<script
+		src="https://code.jquery.com/jquery-3.5.0.min.js"
+		integrity="sha256-xNzN2a4ltkB44Mc/Jz3pT4iU1cmeR0FkXs4pru/JxaQ="
+		crossorigin="anonymous">
+	</script>	
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-easing/1.4.1/jquery.easing.min.js"></script>
+	<script src="https://unpkg.com/masonry-layout@4/dist/masonry.pkgd.min.js"></script>
+	<script src="https://unpkg.com/imagesloaded@4/imagesloaded.pkgd.min.js"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery.colorbox/1.6.4/jquery.colorbox-min.js"></script>
+	<script src="colorbox/i18n/jquery.colorbox-ja.js"></script>
+		
+
+	
+	<style type="text/css">
+		.site-logo{
+			text-align: center;
+		}
+		.site-logo img{
+			height: 79px;
+			width: 288px;
+			object-fit: cover;
+		}
+		/* <!-- スライドショー大枠のCSS -->*/
+		.gallery{
+			margin: 0;
+			padding: 0;
+		}
+		.gallery-item{ /* li */
+			list-style: none;
+			margin-top: 10px;
+			max-width: 300px;
+		}
+		.gallery-item .caption {
+			display: none;
+		}
+		.gallery-item img {
+			max-width: 100%;
+		}
+		.is-loading{
+			opacity: 0;
+		}
+		.filter-form label {
+			padding: 18px 5px 0px 5px;
+			margin-right: 18px;
+			border-radius: 3px;
+			transition: all .2s;
+			background: gainsboro;
+
+			cursor:pointer;
+			display: inline-block;
+			font-weight: bold;
+			
+			min-width: 130px;
+			text-align: center;
+			min-height: 36px;
+		}
+		.filter-form label.ui-state-focus{
+			outline: 1px dotted;
+		}
+		.filter-form label .ui-icon{
+			background: url(img/sprites.png) no-repeat 0 0;
+			display: inline-block;
+			height: 17px;
+			margin-right: 0.5em;
+			margin-top: 2px;
+			width: 17px;
+			vertical-align: top;
+		}
+		.filter-form label.ui-state-active .ui-icon{
+			background-position: -20px 0;
+		}
+
+
+		.filter-form input[type="radio"]:checked + .filter-label {
+			background: #B54A4A;
+			color: #fff;
+			text-shadow: 0 0 1px rgba(0,0,0,.7);
+		}
+			
+		.filter-form input[type="radio"]{
+			display: none;
+		}
+		.load-more {
+			display: inline-block;
+			padding: 0.5em 1em;
+			text-decoration: none;
+			background: #f7f7f7;
+			border-left: solid 6px #312b2a;/*左線*/
+			color: #312b2a;/*文字色*/
+			font-weight: bold;
+			box-shadow: 0px 2px 2px rgba(0, 0, 0, 0.29);
+			-webkit-background-clip: padding-box; 
+			-moz-background-clip: padding; 
+			background-clip: padding-box;
+			width: 100%;
+		}
+		.ImgTitle{
+			color:#0000FF;
+			cursor:pointer;
+		}
+		.load-more:active {
+			box-shadow: inset 0 0 2px rgba(128, 128, 128, 0.1);
+			transform: translateY(2px);
+		}
+		#cboxContent {
+			background-color: #fff;
+			background-image: linear-gradient(-45deg, rgba(240, 240, 240, 0.5) 25%, transparent 25%, transparent 50%, rgba(240,240,240,.5) 50%, rgba(240,240,240,.5) 75%, transparent 75%, transparent 100%), linear-gradient(45deg, rgba(240,240,240,.5) 25%, transparent 25%, transparent 50%,  rgba(240,240,240,.5) 50%, rgba(240,240,240,.5) 75%, transparent 75%, transparent 100%);
+			background-size: 52px 52px;
+		}
+	</style>
+
+	<!-- HTML内埋め込み -->
+	<script type="text/javascript">
+		$(function(){
+			$('#gallery').each(function(){
+				var $container = $(this),
+					$LoadMoreButton = $('#load-more'),
+					$filter = $('#gallery-filter'),
+					addItemCount = 16,
+					added = 0,
+					allData = [],
+					filteredData = [];
+
+				// masonryのオプション設定
+				$container.masonry({
+					columnWidth: 30,
+					gutter: 10,
+					itemSelector: '.gallery-item'
+				});
+				
+				$.getJSON('data/content.json',initGallery);
+				
+				// ギャラリーを初期化する
+				function initGallery(data){
+					// 全JSONデータを引渡し
+					allData = data;
+					// 初期化なのでフィルタしない
+					filteredData = allData;
+					// 一番最初のアイテムの表示
+					addItems();
+					// Loadボタンが押されたら、アイテムを追加する
+					$LoadMoreButton.on('click',addItems);
+					// Form内に変化があった時、フィルタをかける
+					$filter.on('change','input[type=radio]',filterItems);
+				}
+
+				function addItems(filter){
+					var elements = [],
+					// 追加するデータの配列の一部を取り出す。16枚ずつ増やして表示
+					sliceData = filteredData.slice(added , added + addItemCount);
+
+					$.each(sliceData,function(i , item){
+						var itemHTML = 
+							'<li class="gallery-item is-loading">' +
+								'<a href="' + item.images.large + '"> ' +
+									'<img src="' + item.images.thumb + '" alt=""> ' +
+									'<span class="caption">' +
+										'<span class="inner"> ' + 
+											'　　<b onclick=javascript:window.open("' + item.datalink + '","_blank"); class="ImgTitle">' + item.title + '</b>　←オライリーへ' +
+										'</span>' +
+									'</span>' +
+								'</a>' +
+							'</li>';
+						// elements.push -> 配列の最後に入れる
+						// $(itemHTML) -> 文字列をhtml要素に変換する
+						// .get(0) -> 一番最初の要素を取得する
+						elements.push($(itemHTML).get(0));
+					});
+
+					// .append(elements) -> 配列の要素をギャラリーの後ろにくっつける
+					//.imagesLoaded -> 画像をロード
+					// $container.masonry -> 表示
+					$container
+					.append(elements)
+					.imagesLoaded(function(){
+						$(elements).removeClass('is-loading');
+						$container.masonry('appended',elements);
+						//
+						if(filter){
+							$container.masonry();
+						}
+					});
+
+					// colorbox表示用の設定。サイズとタイトルを設定
+					$container.find('a').colorbox({
+						rel: true,
+						width: '70%',
+						height: '70%',
+						closeButton: false,
+						title: function(){
+							return $(this).find('.inner').html();
+						}
+					});
+
+					// 追加済みのアイテムの数を更新
+					added += sliceData.length;
+					// 「もっと表示」ボタンの表示・非表示
+					// 全部の画像が表示し終わっていたらボタンを消す
+					if(added < filteredData.length){
+						$LoadMoreButton.show();
+					} else {
+						$LoadMoreButton.hide();
+					}
+				}
+				// 絞られた要素をフィルタして、filteredDataに入れなおす
+				function filterItems(){
+					// changesメソッドを呼ぶきっかけになったコントロールの値を取得
+					var key = $(this).val(),
+					// 今現在表示されているmasonryの要素を取得
+					masonryItems = $container.masonry('getItemElements');
+					// 登録されている要素を全て消去
+					$container.masonry('remove',masonryItems);
+					// フィルタデータと、ロードのカウントを初期化
+					filteredData = [];
+					added = 0;
+					// フィルタチェック
+					if(key === 'all'){
+						// フィルタ不要なら全部のデータを突っ込む
+						filteredData = allData;
+					} else {
+						// フィルタがいるならJSONからキーに合致するものだけをgrepして返す
+						filteredData = $.grep(allData,function(item){
+							// JSONのcategoryは押されたkeyと同じもの
+							return item.category === key;
+						});
+					}
+					// Itemを追加する
+					addItems(true);
+				}
+			});
+		});
+	</script>
+</head>
+<body>
+	<header>
+		<div class="inner clearfix">
+			<h1 class="site-logo">
+				<img src="img/OReillyANIMALS.png" alt="O'Reilly ANIMALS">
+			</h1>
+			<form class="filter-form" id="gallery-filter">
+					<input type="radio" name="filter" id="filter-all" value="all" checked>
+					<label class="filter-label" for="filter-all">All</label>
+
+					<input type="radio" name="filter" id="filter-C_OperatingSystem" value="C_OperatingSystem">
+					<label class="filter-label" for="filter-C_OperatingSystem">OperatingSystem</label>
+
+					<input type="radio" name="filter" id="filter-C_architecture" value="C_architecture">
+					<label class="filter-label" for="filter-C_architecture">アーキテクチャ</label>
+
+					<input type="radio" name="filter" id="filter-C_software" value="C_software">
+					<label class="filter-label" for="filter-C_software">ソフトウェア</label>
+
+					<input type="radio" name="filter" id="filter-C_ProgrammingLanguage" value="C_ProgrammingLanguage">
+					<label class="filter-label" for="filter-C_ProgrammingLanguage">プログラミング言語</label>
+			</form>
+		</div>
+	</header>
+	<div class="page-main" role="main">
+		<ul class="gallery" id="gallery"></ul>
+		<button class="load-more" id="load-more">Load more</button>
+	</div>
+</body>
